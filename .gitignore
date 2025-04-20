@@ -35,3 +35,17 @@ out/
 
 ### VS Code ###
 .vscode/
+
+/build/
+/.gradle/
+/out/
+*.class
+*.log
+*.iml
+.idea/
+.vscode/
+target/
+*.jar
+*.war
+*.db
+application.properties
