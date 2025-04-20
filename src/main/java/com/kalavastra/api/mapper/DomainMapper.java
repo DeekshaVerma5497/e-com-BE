@@ -1,6 +1,7 @@
-// src/main/java/com/kalavastra/api/mapper/DomainMapper.java
 package com.kalavastra.api.mapper;
 
+import com.kalavastra.api.dto.AddressRequestDto;
+import com.kalavastra.api.dto.AddressResponseDto;
 import com.kalavastra.api.dto.CategoryDto;
 import com.kalavastra.api.dto.ProductRequestDto;
 import com.kalavastra.api.dto.ProductResponseDto;
@@ -8,6 +9,7 @@ import com.kalavastra.api.dto.UserResponseDto;
 import com.kalavastra.api.model.Category;
 import com.kalavastra.api.model.Product;
 import com.kalavastra.api.model.User;
+import com.kalavastra.api.model.Address;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -46,4 +48,23 @@ public interface DomainMapper {
   @Mapping(target = "productCode", ignore = true)
   @Mapping(target = "category", ignore = true)
   void updateProductFromDto(ProductRequestDto dto, @MappingTarget Product product);
+  
+  // ADDRESS
+  AddressResponseDto addressToDto(Address address);
+
+  @Mapping(target = "addressId", ignore = true)
+  @Mapping(target = "dateCreated", ignore = true)
+  @Mapping(target = "dateUpdated", ignore = true)
+  @Mapping(target = "isActive", ignore = true)
+  Address dtoToAddress(AddressRequestDto dto);
+
+  @Mapping(target = "addressId", ignore = true)
+  @Mapping(target = "user", ignore = true)            // set in service
+  @Mapping(target = "dateCreated", ignore = true)
+  @Mapping(target = "dateUpdated", ignore = true)
+  @Mapping(target = "isActive", ignore = true)
+  void updateAddressFromDto(AddressRequestDto dto, @MappingTarget Address address);
+
+
+
 }
