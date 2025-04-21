@@ -3,39 +3,33 @@ package com.kalavastra.api.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * A shopping cart owned by a User.  Holds zero or more CartItems.
+ * One line in a Cart tying a Product to a quantity.
  */
 @Entity
-@Table(name = "carts")
+@Table(name = "cart_items")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Cart {
+public class CartItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "cart_id")
-    private Long cartId;
+    @Column(name = "cart_item_id")
+    private Long cartItemId;
 
-    /** Owning user (references users.user_id, not the numeric PK). */
+    /** Owning cart. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-        name = "user_id",
-        referencedColumnName = "user_id",
-        nullable = false
-    )
-    private User user;
+    @JoinColumn(name = "cart_id", nullable = false)
+    private Cart cart;
 
-    /** Line items in this cart. */
-    @OneToMany(
-        mappedBy = "cart",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
-    @Builder.Default
-    private List<CartItem> items = new ArrayList<>();
+    /** The product in this line. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    /** How many units. */
+    @Column(nullable = false)
+    private Integer quantity;
 
     @Column(name = "date_created", updatable = false)
     private Instant dateCreated;
@@ -43,6 +37,10 @@ public class Cart {
     @Column(name = "date_updated")
     private Instant dateUpdated;
     
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();

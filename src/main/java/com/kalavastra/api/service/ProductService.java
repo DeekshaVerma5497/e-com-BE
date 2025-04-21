@@ -111,5 +111,11 @@ public class ProductService {
             );
         return mapper.productToDto(product);
     }
+    
+    public Product getEntityByCode(String code) {
+    	  return productRepo.findByProductCode(code)
+    	    .orElseThrow(() -> new ResourceNotFoundException("Product", "productCode", code));
+    	}
+
 
 }
