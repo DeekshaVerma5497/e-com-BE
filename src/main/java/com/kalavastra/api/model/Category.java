@@ -2,59 +2,40 @@ package com.kalavastra.api.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.Instant;
-import java.util.List;
 
-/**
- * Category entity to represent product groupings like Sarees, Accessories etc.
- */
+import java.time.Instant;
+
 @Entity
 @Table(name = "categories")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Category {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Business-level category identifier (e.g., sarees_silk)
-     */
-    @Column(name = "category_code", unique = true, nullable = false, length = 50)
+    @Column(name="category_code", nullable=false, unique=true, length=50)
     private String categoryCode;
 
-    /**
-     * Display name of the category (e.g., "Silk Sarees")
-     */
-    @Column(nullable = false, length = 100)
+    @Column(nullable=false, length=100)
     private String name;
 
-    /**
-     * Optional description for admin use or UI display
-     */
-    @Column(length = 255)
+    @Column(columnDefinition="TEXT")
     private String description;
 
-    /**
-     * One-to-many relationship with products.
-     */
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
-    private List<Product> products;
+    @Builder.Default
+    @Column(name="is_active", nullable=false)
+    private Boolean isActive = true;
 
-    @Column(name = "date_created", updatable = false)
+    @Column(name="date_created", updatable=false)
     private Instant dateCreated;
 
-    @Column(name = "date_updated")
+    @Column(name="date_updated")
     private Instant dateUpdated;
 
     @PrePersist
     protected void onCreate() {
-        dateCreated = Instant.now();
-        dateUpdated = Instant.now();
+        Instant now = Instant.now();
+        dateCreated = now;
+        dateUpdated = now;
     }
 
     @PreUpdate

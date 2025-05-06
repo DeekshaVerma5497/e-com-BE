@@ -1,48 +1,38 @@
 package com.kalavastra.api.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A shopping cart owned by a User.  Holds zero or more CartItems.
- */
 @Entity
 @Table(name = "carts")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Cart {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "cart_id")
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="cart_id")
     private Long cartId;
 
-    /** Owning user (references users.user_id, not the numeric PK). */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-        name = "user_id",
-        referencedColumnName = "user_id",
-        nullable = false
-    )
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="user_id", referencedColumnName="user_id", nullable=false)
     private User user;
 
-    /** Line items in this cart. */
-    @OneToMany(
-        mappedBy = "cart",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
+    @OneToMany(mappedBy="cart",
+               cascade=CascadeType.ALL,
+               orphanRemoval=true)
     @Builder.Default
+    @JsonManagedReference
     private List<CartItem> items = new ArrayList<>();
 
-    @Column(name = "date_created", updatable = false)
+    @Column(name="date_created", updatable=false)
     private Instant dateCreated;
 
-    @Column(name = "date_updated")
+    @Column(name="date_updated")
     private Instant dateUpdated;
-    
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();

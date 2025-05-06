@@ -5,6 +5,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * Product entity representing individual sarees or items listed in the catalog.
  */
@@ -57,8 +59,9 @@ public class Product {
     /**
      * Foreign key to category.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="category_id", nullable=false)
+    @JsonIgnore
     private Category category;
 
     @Column(name = "date_created", updatable = false)

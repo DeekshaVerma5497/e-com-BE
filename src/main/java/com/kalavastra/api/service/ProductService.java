@@ -1,121 +1,72 @@
 package com.kalavastra.api.service;
 
-import com.kalavastra.api.dto.ProductRequestDto;
-import com.kalavastra.api.dto.ProductResponseDto;
 import com.kalavastra.api.exception.ResourceNotFoundException;
-import com.kalavastra.api.mapper.DomainMapper;
 import com.kalavastra.api.model.Category;
 import com.kalavastra.api.model.Product;
 import com.kalavastra.api.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-/**
- * Handles product creation, updates, and paginated listings.
- */
-@Service
-@RequiredArgsConstructor
+@Service @RequiredArgsConstructor
 public class ProductService {
-
-    private final ProductRepository productRepo;
+    private final ProductRepository repo;
     private final CategoryService categoryService;
-    private final DomainMapper mapper;
-    
-    public ProductResponseDto create(ProductRequestDto dto) {
-        Category category = categoryService.getByCode(dto.getCategoryCode());
-        if (category == null) {
-        	throw new ResourceNotFoundException("Category", "categoryCode", dto.getCategoryCode());
-        }
 
-        Product product = mapper.dtoToProduct(dto);
-        product.setCategory(category);
-
-        // ✅ Auto-generate product code if not present
-        if (product.getProductCode() == null || product.getProductCode().isBlank()) {
-            String namePart = product.getName().toLowerCase().replaceAll("\\s+", "-");
-            String randomPart = UUID.randomUUID().toString().substring(0, 6);
-            product.setProductCode(namePart + "-" + randomPart);
-        }
-
-        return mapper.productToDto(productRepo.save(product));
+    @Transactional
+    public Product create(Product p) {
+        Category cat = categoryService.getByCode(p.getCategory().getCategoryCode());
+        p.setCategory(cat);
+        if (p.getProductCode()==null || p.getProductCode().isBlank())
+            p.setProductCode(p.getName().toLowerCase().replaceAll("\\s+","-")
+                               + "-" + UUID.randomUUID().toString().substring(0,6));
+        return repo.save(p);
     }
 
-
-    public ProductResponseDto update(Long id, ProductRequestDto dto) {
-        Product p = productRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id.toString()));
-        mapper.updateProductFromDto(dto, p);
-        p.setCategory(categoryService.getByCode(dto.getCategoryCode()));
-        return mapper.productToDto(productRepo.save(p));
+    @Transactional
+    public Product update(Long id, Product req) {
+        Product p = repo.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product","id",id.toString()));
+        p.setName(req.getName());
+        p.setDescription(req.getDescription());
+        p.setPrice(req.getPrice());
+        p.setStock(req.getStock());
+        // update category if changed
+        if (!p.getCategory().getCategoryCode()
+               .equalsIgnoreCase(req.getCategory().getCategoryCode())) {
+            p.setCategory(categoryService.getByCode(req.getCategory().getCategoryCode()));
+        }
+        return repo.save(p);
     }
 
+    @Transactional(readOnly=true)
+    public Product getById(Long id) {
+        return repo.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product","id",id.toString()));
+    }
+
+    @Transactional(readOnly=true)
+    public Product getByCode(String code) {
+        return repo.findByProductCode(code)
+            .orElseThrow(() -> new ResourceNotFoundException("Product","productCode",code));
+    }
+
+    @Transactional
     public void delete(Long id) {
-        if (!productRepo.existsById(id)) {
-            throw new ResourceNotFoundException("Product", "id", id.toString());
+        if (!repo.existsById(id)) throw new ResourceNotFoundException("Product","id",id.toString());
+        repo.deleteById(id);
+    }
+
+    @Transactional(readOnly=true)
+    public Page<Product> list(String categoryCode, Pageable pg) {
+        if (categoryCode!=null) {
+            Category cat = categoryService.getByCode(categoryCode);
+            return repo.findAllByCategory(cat, pg);
         }
-        productRepo.deleteById(id);
+        return repo.findAll(pg);
     }
-
-    public ProductResponseDto getById(Long id) {
-        return productRepo.findById(id)
-                .map(mapper::productToDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", id.toString()));
-    }
-
-    public Page<ProductResponseDto> getAll(String categoryCode, Pageable pageable) {
-        Page<Product> products;
-        if (categoryCode != null) {
-            Category category = categoryService.getByCode(categoryCode);
-            products = productRepo.findAllByCategory(category, pageable);
-        } else {
-            products = productRepo.findAll(pageable);
-        }
-
-        return products.map(mapper::productToDto);
-    }
-    
-    public ProductResponseDto updateByCode(String productCode, ProductRequestDto dto) {
-        Product product = productRepo.findByProductCode(productCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", "productCode", productCode));
-
-        mapper.updateProductFromDto(dto, product);
-
-        // Also update category if categoryCode is provided
-        if (dto.getCategoryCode() != null) {
-            Category category = categoryService.getByCode(dto.getCategoryCode());
-            product.setCategory(category);
-        }
-
-        // Update productCode again only if missing (or you can skip this to retain existing)
-        if (product.getProductCode() == null || product.getProductCode().isBlank()) {
-            String namePart = product.getName().toLowerCase().replaceAll("\\s+", "-");
-            String randomPart = UUID.randomUUID().toString().substring(0, 6);
-            product.setProductCode(namePart + "-" + randomPart);
-        }
-
-        return mapper.productToDto(productRepo.save(product));
-    }
-    
-    /**
-     * Fetch product by its business‐slug code.
-     */
-    public ProductResponseDto getByCode(String productCode) {
-        Product product = productRepo.findByProductCode(productCode)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Product", "productCode", productCode)
-            );
-        return mapper.productToDto(product);
-    }
-    
-    public Product getEntityByCode(String code) {
-    	  return productRepo.findByProductCode(code)
-    	    .orElseThrow(() -> new ResourceNotFoundException("Product", "productCode", code));
-    	}
-
-
 }

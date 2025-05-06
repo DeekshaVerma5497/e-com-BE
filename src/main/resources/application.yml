@@ -9,14 +9,12 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: 'true'
-  jackson:
-    serialization:
-      WRITE_DATES_AS_TIMESTAMPS: false
+        format_sql: true
 
-jwt:
-  secret: replace_with_a_strong_random_secret_key
-  expiration: 3600000   # 1 hour
+app:
+  jwt:
+    secret: MyVerySecureJwtSecretKeyThatIsAtLeast32BytesLong!
+    expirationMs: 3600000
 
 server:
   port: 8081

@@ -1,39 +1,34 @@
 package com.kalavastra.api.service;
 
-import com.kalavastra.api.dto.UpdateUserDto;
-import com.kalavastra.api.dto.UserResponseDto;
 import com.kalavastra.api.exception.ResourceNotFoundException;
-import com.kalavastra.api.mapper.DomainMapper;
 import com.kalavastra.api.model.User;
 import com.kalavastra.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Business logic for user profiles (get & update).
- */
-@Service
-@RequiredArgsConstructor
+@Service @RequiredArgsConstructor
 public class UserService {
+    private final UserRepository repo;
 
-    private final UserRepository userRepo;
-    private final DomainMapper mapper;
-
-    public UserResponseDto getByUserId(String userId) {
-        User u = userRepo.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
-        System.out.println(">>> ENTITY: " + u);
-        UserResponseDto dto = mapper.userToUserResponseDto(u);
-        System.out.println(">>> MAPPED DTO: " + dto);
-        return dto;
-//        return mapper.userToUserResponseDto(u);
+    @Transactional
+    public User create(User u) {
+        u.setIsActive(true);
+        return repo.save(u);
     }
 
-    public UserResponseDto update(String userId, UpdateUserDto dto) {
-        User u = userRepo.findByUserId(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
-        u.setName(dto.getName());
-        u.setPhoneNumber(dto.getPhoneNumber());
-        return mapper.userToUserResponseDto(userRepo.save(u));
+    @Transactional(readOnly=true)
+    public User getByUserId(String userId) {
+        return repo.findByUserId(userId)
+                   .orElseThrow(() -> new ResourceNotFoundException("User","userId",userId));
+    }
+
+    @Transactional
+    public User update(String userId, User req) {
+        User u = getByUserId(userId);
+        u.setName(req.getName());
+        u.setPhoneNumber(req.getPhoneNumber());
+        // etc...
+        return repo.save(u);
     }
 }

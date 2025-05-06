@@ -1,37 +1,36 @@
-// src/main/java/com/kalavastra/api/security/CustomUserDetailsService.java
 package com.kalavastra.api.security;
 
-import com.kalavastra.api.model.User;
-import com.kalavastra.api.repository.UserRepository;
-import org.springframework.security.core.userdetails.*;
+
+import org.springframework.security.core.userdetails.User;    // <<-- security.User builder
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.kalavastra.api.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
+  private final UserRepository repo;
 
-    private final UserRepository userRepo;
+  @Override
+  public UserDetails loadUserByUsername(String email) {
+    // Fully‐qualified name for your JPA User entity:
+    com.kalavastra.api.model.User u = repo.findByEmail(email)
+      .orElseThrow(() -> new UsernameNotFoundException("No user for email: " + email));
 
-    public CustomUserDetailsService(UserRepository userRepo) {
-        this.userRepo = userRepo;
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
-    	System.out.println("Authenticating user with email: " + email);
-        User user = userRepo.findByEmail(email)
-            .orElseThrow(() -> 
-                new UsernameNotFoundException("No user with email " + email)
-            );
-
-        return org.springframework.security.core.userdetails.User.builder()
-            .username(user.getEmail())
-            .password(user.getPasswordHash())
-            .authorities("ROLE_USER")
-            .accountExpired(false)
-            .accountLocked(false)
-            .credentialsExpired(false)
-            .disabled(!user.getIsActive())
-            .build();
-    }
+    // Now this 'User' is definitely Spring Security's builder:
+    return User
+      .withUsername(u.getEmail())
+      .password(u.getPasswordHash())
+      .authorities("USER")
+      .accountExpired(false)
+      .accountLocked(false)
+      .credentialsExpired(false)
+      .disabled(!u.getIsActive())
+      .build();
+  }
 }

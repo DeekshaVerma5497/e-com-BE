@@ -1,70 +1,43 @@
 package com.kalavastra.api.service;
 
-import com.kalavastra.api.dto.CategoryDto;
 import com.kalavastra.api.exception.ResourceNotFoundException;
-import com.kalavastra.api.mapper.DomainMapper;
 import com.kalavastra.api.model.Category;
 import com.kalavastra.api.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
-/**
- * Handles business logic for category creation and listing.
- */
-@Service
-@RequiredArgsConstructor
+@Service @RequiredArgsConstructor
 public class CategoryService {
+    private final CategoryRepository repo;
 
-    private final CategoryRepository categoryRepo;
-    private final DomainMapper mapper;
-    
-    public CategoryDto createCategory(CategoryDto dto) {
-        // Auto-generate code if not present
-        String code = (dto.getCategoryCode() != null && !dto.getCategoryCode().isBlank())
-            ? dto.getCategoryCode().toLowerCase()
-            : dto.getName().toLowerCase().replaceAll("\\s+", "_");
-
-        Category category = Category.builder()
-            .name(dto.getName())
-            .description(dto.getDescription())
-            .categoryCode(code)
-            .build();
-
-        return mapper.categoryToDto(categoryRepo.save(category));
+    @Transactional
+    public Category create(Category c) {
+        c.setCategoryCode(c.getName().toLowerCase().replaceAll("\\s+","-")
+                          + "-" + UUID.randomUUID().toString().substring(0,6));
+        return repo.save(c);
     }
 
-
-    public List<CategoryDto> getAll() {
-        return categoryRepo.findAll()
-                .stream()
-                .map(mapper::categoryToDto)
-                .collect(Collectors.toList());
+    @Transactional(readOnly=true)
+    public Category getByCode(String code) {
+        return repo.findByCategoryCode(code)
+                   .orElseThrow(() -> new ResourceNotFoundException("Category","categoryCode",code));
     }
 
-    public Category getByCode(String categoryCode) {
-        return categoryRepo.findByCategoryCode(categoryCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryCode", categoryCode));
+    @Transactional
+    public Category update(String code, Category req) {
+        Category c = getByCode(code);
+        c.setName(req.getName());
+        c.setDescription(req.getDescription());
+        return repo.save(c);
     }
     
-    /**
-     * Update an existing category looked up by its business key (categoryCode).
-     */
-    public CategoryDto updateByCode(String categoryCode, CategoryDto dto) {
-        Category category = categoryRepo.findByCategoryCode(categoryCode)
-          .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryCode", categoryCode));
-
-        // this will copy only name/description (and any other non‑null fields) —
-        // it will *not* overwrite categoryCode, thanks to our @Mapping above
-        mapper.updateCategoryFromDto(dto, category);
-
-        // if the user really wants to change the code, do it explicitly:
-        if (dto.getCategoryCode() != null && !dto.getCategoryCode().isBlank()) {
-          category.setCategoryCode(dto.getCategoryCode().toLowerCase());
-        }
-
-        return mapper.categoryToDto(categoryRepo.save(category));
-      }
+    /** List all categories in the system */
+    @Transactional(readOnly = true)
+    public List<Category> getAllCategories() {
+        return repo.findAll();
+    }
 }
