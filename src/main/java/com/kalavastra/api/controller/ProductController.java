@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,17 +20,11 @@ public class ProductController {
 
     @Operation(summary="Create new product")
     @PostMapping
-    public ResponseEntity<Product> create(@Valid @RequestBody Product p) {
-        return ResponseEntity.ok(svc.create(p));
-    }
-
-    @Operation(summary="Update product")
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> update(
-        @PathVariable Long id,
-        @Valid @RequestBody Product p
-    ) {
-        return ResponseEntity.ok(svc.update(id, p));
+    public ResponseEntity<Product> create(@Valid @RequestBody Product product) {
+        Product created = svc.create(product);
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(created);
     }
 
     @Operation(summary="Get product by ID")
@@ -40,14 +35,25 @@ public class ProductController {
 
     @Operation(summary="Get product by code")
     @GetMapping("/code/{code}")
-    public ResponseEntity<Product> getByCode(@PathVariable String code) {
+    public ResponseEntity<Product> getByCode(
+        @PathVariable("code") String code
+    ) {
         return ResponseEntity.ok(svc.getByCode(code));
     }
 
-    @Operation(summary="Delete product")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        svc.delete(id);
+    @Operation(summary="Update product by code")
+    @PutMapping("/code/{code}")
+    public ResponseEntity<Product> updateByCode(
+        @PathVariable("code") String code,
+        @Valid @RequestBody Product p
+    ) {
+        return ResponseEntity.ok(svc.updateByCode(code, p));
+    }
+
+    @Operation(summary="Delete product by productCode")
+    @DeleteMapping("/code/{code}")
+    public ResponseEntity<Void> deleteByCode(@PathVariable("code") String code) {
+        svc.deleteByCode(code);
         return ResponseEntity.noContent().build();
     }
 

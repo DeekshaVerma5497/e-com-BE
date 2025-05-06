@@ -1,5 +1,6 @@
 package com.kalavastra.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -27,6 +28,7 @@ public class Order {
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="address_id", nullable=false)
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Address address;
 
     @Column(name="status", nullable=false, length=20)

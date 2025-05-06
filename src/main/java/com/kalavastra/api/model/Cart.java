@@ -1,5 +1,6 @@
 package com.kalavastra.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -18,6 +19,7 @@ public class Cart {
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="user_id", referencedColumnName="user_id", nullable=false)
+    @JsonIgnore
     private User user;
 
     @OneToMany(mappedBy="cart",

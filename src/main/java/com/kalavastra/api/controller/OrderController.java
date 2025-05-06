@@ -37,12 +37,4 @@ public class OrderController {
     public ResponseEntity<Order> cancel(@PathVariable Long orderId) {
         return ResponseEntity.ok(svc.cancel(orderId));
     }
-
-    @PutMapping("/{orderId}/items/{itemId}/return")
-    public ResponseEntity<Order> returnItem(
-        @PathVariable Long orderId,
-        @PathVariable Long itemId
-    ) {
-        return ResponseEntity.ok(svc.returnItem(orderId, itemId));
-    }
 }

@@ -24,7 +24,7 @@ public class OrderService {
         Order order = Order.builder()
             .user(user)
             .address(address)
-            .status("Placed")
+            .status("PLACED")
             .build();
 
         BigDecimal total = BigDecimal.ZERO;
@@ -55,21 +55,7 @@ public class OrderService {
     @Transactional
     public Order cancel(Long orderId) {
         Order o = getById(orderId);
-        o.setStatus("Cancelled");
-        return orderRepo.save(o);
-    }
-
-    @Transactional
-    public Order returnItem(Long orderId, Long itemId) {
-        Order o = getById(orderId);
-        OrderItem toReturn = o.getItems().stream()
-            .filter(i->i.getOrderItemId().equals(itemId))
-            .findFirst()
-            .orElseThrow(() -> new ResourceNotFoundException("OrderItem","orderItemId",itemId.toString()));
-        o.getItems().remove(toReturn);
-        // adjust total
-        BigDecimal line = toReturn.getPrice().multiply(BigDecimal.valueOf(toReturn.getQuantity()));
-        o.setTotalAmount(o.getTotalAmount().subtract(line));
+        o.setStatus("CANCELLED");
         return orderRepo.save(o);
     }
 }

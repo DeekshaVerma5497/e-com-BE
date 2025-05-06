@@ -4,12 +4,16 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * Product entity representing individual sarees or items listed in the catalog.
- */
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Entity
 @Table(name = "products")
 @Getter
@@ -17,52 +21,50 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Business-friendly SKU/Code for internal or customer reference.
-     */
     @Column(name = "product_code", unique = true, nullable = false, length = 50)
     private String productCode;
 
-    /**
-     * Product display title.
-     */
     @Column(nullable = false, length = 150)
     private String name;
 
     @Column(length = 500)
     private String description;
 
-    /**
-     * Price in INR.
-     */
     @Column(nullable = false)
     private BigDecimal price;
 
-    /**
-     * Stock available.
-     */
     @Column(nullable = false)
     private Integer stock;
 
-    /**
-     * Product image URL (hosted on CDN or cloud).
-     */
-    @Column(name = "image_url", length = 255)
-    private String imageUrl;
+    /** JSONB blob for arbitrary metadata */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "extension", columnDefinition = "jsonb")
+    private Map<String, Object> extension = new HashMap<>();
 
-    /**
-     * Foreign key to category.
-     */
-    @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="category_id", nullable=false)
+    /** Soft-delete flag */
+    @Builder.Default
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+      name = "category_code",
+      referencedColumnName = "category_code",
+      nullable = false
+    )
     @JsonIgnore
     private Category category;
+    
+    @Transient
+    @JsonProperty("categoryCode")
+    private String categoryCode;
 
     @Column(name = "date_created", updatable = false)
     private Instant dateCreated;

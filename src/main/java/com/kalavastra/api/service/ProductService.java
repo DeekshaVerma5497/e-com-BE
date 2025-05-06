@@ -18,29 +18,57 @@ public class ProductService {
     private final CategoryService categoryService;
 
     @Transactional
-    public Product create(Product p) {
-        Category cat = categoryService.getByCode(p.getCategory().getCategoryCode());
-        p.setCategory(cat);
-        if (p.getProductCode()==null || p.getProductCode().isBlank())
-            p.setProductCode(p.getName().toLowerCase().replaceAll("\\s+","-")
-                               + "-" + UUID.randomUUID().toString().substring(0,6));
-        return repo.save(p);
+    public Product create(Product product) {
+        // 1. Resolve Category by the transient categoryCode
+        String code = product.getCategoryCode();
+        Category cat = categoryService.getByCode(code);
+        product.setCategory(cat);
+
+        // 2. Generate a slug-style productCode if none was provided
+        if (product.getProductCode() == null || product.getProductCode().isBlank()) {
+            String slug = product.getName()
+                                 .trim()
+                                 .toLowerCase()
+                                 .replaceAll("\\s+", "-");
+            String random = UUID.randomUUID().toString().substring(0, 6);
+            product.setProductCode(slug + "-" + random);
+        }
+
+        // 3. Persist
+        return repo.save(product);
     }
 
     @Transactional
-    public Product update(Long id, Product req) {
-        Product p = repo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Product","id",id.toString()));
-        p.setName(req.getName());
-        p.setDescription(req.getDescription());
-        p.setPrice(req.getPrice());
-        p.setStock(req.getStock());
-        // update category if changed
-        if (!p.getCategory().getCategoryCode()
-               .equalsIgnoreCase(req.getCategory().getCategoryCode())) {
-            p.setCategory(categoryService.getByCode(req.getCategory().getCategoryCode()));
+    public Product updateByCode(String productCode, Product req) {
+        Product existing = repo.findByProductCode(productCode)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Product", "productCode", productCode)
+            );
+
+        // copy simple fields
+        existing.setName(req.getName());
+        existing.setDescription(req.getDescription());
+        existing.setPrice(req.getPrice());
+        existing.setStock(req.getStock());
+        existing.setExtension(req.getExtension());
+        existing.setIsActive(req.getIsActive());
+
+        // update category if a new code was passed
+        String newCode = req.getCategoryCode();
+        if (newCode != null &&
+            !newCode.equalsIgnoreCase(existing.getCategory().getCategoryCode())) {
+            existing.setCategory(categoryService.getByCode(newCode));
         }
-        return repo.save(p);
+
+        return repo.save(existing);
+    }
+
+    @Transactional(readOnly = true)
+    public Product getByCode(String productCode) {
+        return repo.findByProductCode(productCode)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Product", "productCode", productCode)
+            );
     }
 
     @Transactional(readOnly=true)
@@ -49,16 +77,16 @@ public class ProductService {
             .orElseThrow(() -> new ResourceNotFoundException("Product","id",id.toString()));
     }
 
-    @Transactional(readOnly=true)
-    public Product getByCode(String code) {
-        return repo.findByProductCode(code)
-            .orElseThrow(() -> new ResourceNotFoundException("Product","productCode",code));
-    }
-
     @Transactional
-    public void delete(Long id) {
-        if (!repo.existsById(id)) throw new ResourceNotFoundException("Product","id",id.toString());
-        repo.deleteById(id);
+    public void deleteByCode(String productCode) {
+        Product p = repo.findByProductCode(productCode)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Product", "productCode", productCode)
+            );
+
+        // mark inactive and save
+        p.setIsActive(false);
+        repo.save(p);
     }
 
     @Transactional(readOnly=true)
