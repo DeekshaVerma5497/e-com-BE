@@ -30,9 +30,8 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Transient                        // not persisted
-    @JsonIgnore
-    @JsonProperty("password")        // Jackson will map the JSON “password” here
+    @Transient
+    @JsonProperty(value="password", access=JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(name="phone_number", length=20)

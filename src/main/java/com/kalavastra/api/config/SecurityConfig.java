@@ -14,6 +14,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
 
 @Configuration
 @RequiredArgsConstructor
@@ -27,8 +33,11 @@ public class SecurityConfig {
         http
           // 1) no CSRF (we’re stateless)
           .csrf(AbstractHttpConfigurer::disable)
+          
+          // 2) register CORS filter FIRST, so that preflight (OPTIONS) requests get the right headers
+          .addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class)
 
-          // 2) public endpoints
+          // 3) public endpoints
           .authorizeHttpRequests(auth -> auth
             .requestMatchers(
               "/api/v1/auth/**",
@@ -39,15 +48,15 @@ public class SecurityConfig {
             .anyRequest().authenticated()
           )
 
-          // 3) stateless session
+          // 4) stateless session
           .sessionManagement(sm -> sm
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
           )
 
-          // 4) inject our DaoAuthProvider
+          // 5) inject our DaoAuthProvider
           .authenticationProvider(daoAuthenticationProvider())
 
-          // 5) plug in the JWT filter
+          // 6) plug in the JWT filter
           .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
         ;
 
@@ -75,5 +84,21 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+    
+    @Bean
+    public CorsFilter corsFilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOrigin("http://localhost:4200");
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("OPTIONS");
+        config.addAllowedMethod("GET");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("PUT");
+        config.addAllowedMethod("DELETE");
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+        return new CorsFilter(source);
     }
 }
