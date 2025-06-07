@@ -33,6 +33,7 @@ public class CategoryService {
 		Category c = getByCode(code);
 		c.setName(req.getName());
 		c.setDescription(req.getDescription());
+		c.setImageUrl(req.getImageUrl());
 		return repo.save(c);
 	}
 

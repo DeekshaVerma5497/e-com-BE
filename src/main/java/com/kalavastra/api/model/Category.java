@@ -29,6 +29,9 @@ public class Category {
 	@Builder.Default
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
+	
+	@Column(name = "image_url", columnDefinition = "TEXT")
+	private String imageUrl;
 
 	@Column(name = "date_created", updatable = false)
 	private Instant dateCreated;
