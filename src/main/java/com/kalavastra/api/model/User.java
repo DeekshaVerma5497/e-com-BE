@@ -11,51 +11,56 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(name="user_id", nullable=false, unique=true, length=50)
-    private String userId;
+	@Column(name = "user_id", nullable = false, unique = true, length = 50)
+	private String userId;
 
-    @Column(nullable=false, length=100)
-    private String name;
+	@Column(nullable = false, length = 100)
+	private String name;
 
-    @Column(nullable=false, unique=true, length=100)
-    private String email;
+	@Column(nullable = false, unique = true, length = 100)
+	private String email;
 
-    @JsonIgnore     
-    @NotBlank(message = "Password is required")// never serialize the hash out
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+	@JsonIgnore
+	@NotBlank(message = "Password is required") // never serialize the hash out
+	@Column(name = "password_hash", nullable = false)
+	private String passwordHash;
 
-    @Transient
-    @JsonProperty(value="password", access=JsonProperty.Access.WRITE_ONLY)
-    private String password;
+	@Transient
+	@JsonProperty(value = "password", access = JsonProperty.Access.WRITE_ONLY)
+	private String password;
 
-    @Column(name="phone_number", length=20)
-    private String phoneNumber;
+	@Column(name = "phone_number", length = 20)
+	private String phoneNumber;
 
-    @Builder.Default
-    @Column(name="is_active", nullable=false)
-    private Boolean isActive = true;
+	@Builder.Default
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive = true;
 
-    @Column(name="date_created", updatable=false)
-    private Instant dateCreated;
+	@Column(name = "date_created", updatable = false)
+	private Instant dateCreated;
 
-    @Column(name="date_updated")
-    private Instant dateUpdated;
+	@Column(name = "date_updated")
+	private Instant dateUpdated;
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        dateCreated = now;
-        dateUpdated = now;
-    }
+	@PrePersist
+	protected void onCreate() {
+		Instant now = Instant.now();
+		dateCreated = now;
+		dateUpdated = now;
+	}
 
-    @PreUpdate
-    protected void onUpdate() {
-        dateUpdated = Instant.now();
-    }
+	@PreUpdate
+	protected void onUpdate() {
+		dateUpdated = Instant.now();
+	}
 }

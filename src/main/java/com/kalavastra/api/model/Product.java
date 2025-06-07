@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -24,62 +26,62 @@ import org.hibernate.type.SqlTypes;
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Product {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(name = "product_code", unique = true, nullable = false, length = 50)
-    private String productCode;
+	@Column(name = "product_code", unique = true, nullable = false, length = 50)
+	private String productCode;
 
-    @Column(nullable = false, length = 150)
-    private String name;
+	@Column(nullable = false, length = 150)
+	private String name;
 
-    @Column(length = 500)
-    private String description;
+	@Column(length = 500)
+	private String description;
 
-    @Column(nullable = false)
-    private BigDecimal price;
+	@Column(nullable = false)
+	private BigDecimal price;
 
-    @Column(nullable = false)
-    private Integer stock;
+	@Column(nullable = false)
+	private Integer stock;
 
-    /** JSONB blob for arbitrary metadata */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "extension", columnDefinition = "jsonb")
-    private Map<String, Object> extension = new HashMap<>();
+	/** JSONB blob for arbitrary metadata */
+	@JdbcTypeCode(SqlTypes.JSON)
+	@Column(name = "extension", columnDefinition = "jsonb")
+	private Map<String, Object> extension = new HashMap<>();
 
-    /** Soft-delete flag */
-    @Builder.Default
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+	/** Soft-delete flag */
+	@Builder.Default
+	@Column(name = "is_active")
+	private Boolean isActive = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-      name = "category_code",
-      referencedColumnName = "category_code",
-      nullable = false
-    )
-    @JsonIgnore
-    private Category category;
-    
-    @Transient
-    @JsonProperty("categoryCode")
-    private String categoryCode;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "category_code", referencedColumnName = "category_code", nullable = false)
+	@JsonIgnore
+	private Category category;
 
-    @Column(name = "date_created", updatable = false)
-    private Instant dateCreated;
+	@Transient
+	@JsonProperty("categoryCode")
+	private String categoryCode;
 
-    @Column(name = "date_updated")
-    private Instant dateUpdated;
+	@Transient
+	@JsonProperty("images")
+	private List<String> images = new ArrayList<>();
 
-    @PrePersist
-    protected void onCreate() {
-        dateCreated = Instant.now();
-        dateUpdated = Instant.now();
-    }
+	@Column(name = "date_created", updatable = false)
+	private Instant dateCreated;
 
-    @PreUpdate
-    protected void onUpdate() {
-        dateUpdated = Instant.now();
-    }
+	@Column(name = "date_updated")
+	private Instant dateUpdated;
+
+	@PrePersist
+	protected void onCreate() {
+		dateCreated = Instant.now();
+		dateUpdated = Instant.now();
+	}
+
+	@PreUpdate
+	protected void onUpdate() {
+		dateUpdated = Instant.now();
+	}
 }

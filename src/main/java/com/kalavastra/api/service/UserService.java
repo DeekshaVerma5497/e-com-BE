@@ -7,28 +7,28 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service @RequiredArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class UserService {
-    private final UserRepository repo;
+	private final UserRepository repo;
 
-    @Transactional
-    public User create(User u) {
-        u.setIsActive(true);
-        return repo.save(u);
-    }
+	@Transactional
+	public User create(User u) {
+		u.setIsActive(true);
+		return repo.save(u);
+	}
 
-    @Transactional(readOnly=true)
-    public User getByUserId(String userId) {
-        return repo.findByUserId(userId)
-                   .orElseThrow(() -> new ResourceNotFoundException("User","userId",userId));
-    }
+	@Transactional(readOnly = true)
+	public User getByUserId(String userId) {
+		return repo.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("User", "userId", userId));
+	}
 
-    @Transactional
-    public User update(String userId, User req) {
-        User u = getByUserId(userId);
-        u.setName(req.getName());
-        u.setPhoneNumber(req.getPhoneNumber());
-        // etc...
-        return repo.save(u);
-    }
+	@Transactional
+	public User update(String userId, User req) {
+		User u = getByUserId(userId);
+		u.setName(req.getName());
+		u.setPhoneNumber(req.getPhoneNumber());
+		// etc...
+		return repo.save(u);
+	}
 }

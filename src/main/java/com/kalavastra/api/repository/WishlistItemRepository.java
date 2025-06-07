@@ -6,12 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface WishlistItemRepository
-    extends JpaRepository<WishlistItem,WishlistItemId> {
+public interface WishlistItemRepository extends JpaRepository<WishlistItem, WishlistItemId> {
 
-    List<WishlistItem> findAllByWishlist_WishlistIdAndIsActiveTrue(Long wishlistId);
+	List<WishlistItem> findAllByWishlist_WishlistIdAndIsActiveTrue(Long wishlistId);
 
-    Optional<WishlistItem> findByWishlist_WishlistIdAndProduct_ProductCode(
-        Long wishlistId, String productCode
-    );
+	Optional<WishlistItem> findByWishlist_WishlistIdAndProduct_ProductCode(Long wishlistId, String productCode);
 }

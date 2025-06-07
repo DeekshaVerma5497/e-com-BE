@@ -12,36 +12,37 @@ import java.util.List;
 
 @Entity
 @Table(name = "wishlists")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Wishlist {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "wishlist_id")
-    private Long wishlistId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "wishlist_id")
+	private Long wishlistId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
-    @JsonIgnore
-    private User user;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
+	@JsonIgnore
+	private User user;
 
-    @Column(length = 100)
-    private String name;
+	@Column(length = 100)
+	private String name;
 
-    @Column(name = "date_created", updatable = false)
-    private Instant dateCreated;
+	@Column(name = "date_created", updatable = false)
+	private Instant dateCreated;
 
-    @PrePersist
-    protected void onCreate() {
-        dateCreated = Instant.now();
-    }
+	@PrePersist
+	protected void onCreate() {
+		dateCreated = Instant.now();
+	}
 
-    @OneToMany(
-        mappedBy = "wishlist",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
-    @Builder.Default
-    @JsonManagedReference
-    private List<WishlistItem> items = new ArrayList<>();
+	@OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
+	@JsonManagedReference
+	private List<WishlistItem> items = new ArrayList<>();
 }

@@ -7,39 +7,44 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "categories")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Category {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(name="category_code", nullable=false, unique=true, length=50)
-    private String categoryCode;
+	@Column(name = "category_code", nullable = false, unique = true, length = 50)
+	private String categoryCode;
 
-    @Column(nullable=false, length=100)
-    private String name;
+	@Column(nullable = false, length = 100)
+	private String name;
 
-    @Column(columnDefinition="TEXT")
-    private String description;
+	@Column(columnDefinition = "TEXT")
+	private String description;
 
-    @Builder.Default
-    @Column(name="is_active", nullable=false)
-    private Boolean isActive = true;
+	@Builder.Default
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive = true;
 
-    @Column(name="date_created", updatable=false)
-    private Instant dateCreated;
+	@Column(name = "date_created", updatable = false)
+	private Instant dateCreated;
 
-    @Column(name="date_updated")
-    private Instant dateUpdated;
+	@Column(name = "date_updated")
+	private Instant dateUpdated;
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        dateCreated = now;
-        dateUpdated = now;
-    }
+	@PrePersist
+	protected void onCreate() {
+		Instant now = Instant.now();
+		dateCreated = now;
+		dateUpdated = now;
+	}
 
-    @PreUpdate
-    protected void onUpdate() {
-        dateUpdated = Instant.now();
-    }
+	@PreUpdate
+	protected void onUpdate() {
+		dateUpdated = Instant.now();
+	}
 }

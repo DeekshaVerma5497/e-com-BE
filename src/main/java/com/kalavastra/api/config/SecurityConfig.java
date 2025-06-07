@@ -20,85 +20,79 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final CustomUserDetailsService uds;
-    private final JwtAuthFilter            jwtFilter;
+	private final CustomUserDetailsService uds;
+	private final JwtAuthFilter jwtFilter;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-          // 1) no CSRF (we’re stateless)
-          .csrf(AbstractHttpConfigurer::disable)
-          
-          // 2) register CORS filter FIRST, so that preflight (OPTIONS) requests get the right headers
-          .addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class)
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		http
+				// 1) no CSRF (we’re stateless)
+				.csrf(AbstractHttpConfigurer::disable)
 
-          // 3) public endpoints
-          .authorizeHttpRequests(auth -> auth
-            .requestMatchers(
-              "/api/v1/auth/**",
-              "/swagger-ui.html",
-              "/swagger-ui/**",
-              "/v3/api-docs/**"
-            ).permitAll()
-            .anyRequest().authenticated()
-          )
+				// 2) register CORS filter FIRST, so that preflight (OPTIONS) requests get the
+				// right headers
+				.addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class)
 
-          // 4) stateless session
-          .sessionManagement(sm -> sm
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-          )
+				// 3) public endpoints
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/api/v1/auth/**", "/api/v1/products/**", "/api/v1/categories/**",
+								"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
+						.permitAll().anyRequest().authenticated())
 
-          // 5) inject our DaoAuthProvider
-          .authenticationProvider(daoAuthenticationProvider())
+				// 4) stateless session
+				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-          // 6) plug in the JWT filter
-          .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-        ;
+				// 5) inject our DaoAuthProvider
+				.authenticationProvider(daoAuthenticationProvider())
 
-        return http.build();
-    }
+				// 6) plug in the JWT filter
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-    /** so that Spring Security knows how to load users + check passwords */
-    @Bean
-    public AuthenticationProvider daoAuthenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(uds);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
+		return http.build();
+	}
 
-    /** exposed so your AuthController (or service) can perform the actual `authenticate(...)` call */
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder auth = 
-          http.getSharedObject(AuthenticationManagerBuilder.class);
-        auth.authenticationProvider(daoAuthenticationProvider());
-        return auth.build();
-    }
+	/** so that Spring Security knows how to load users + check passwords */
+	@Bean
+	public AuthenticationProvider daoAuthenticationProvider() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+		provider.setUserDetailsService(uds);
+		provider.setPasswordEncoder(passwordEncoder());
+		return provider;
+	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-    
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:4200");
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("OPTIONS");
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("DELETE");
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return new CorsFilter(source);
-    }
+	/**
+	 * exposed so your AuthController (or service) can perform the actual
+	 * `authenticate(...)` call
+	 */
+	@Bean
+	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+		AuthenticationManagerBuilder auth = http.getSharedObject(AuthenticationManagerBuilder.class);
+		auth.authenticationProvider(daoAuthenticationProvider());
+		return auth.build();
+	}
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	public CorsFilter corsFilter() {
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowCredentials(true);
+		config.addAllowedOrigin("http://localhost:4200");
+		config.addAllowedHeader("*");
+		config.addAllowedMethod("OPTIONS");
+		config.addAllowedMethod("GET");
+		config.addAllowedMethod("POST");
+		config.addAllowedMethod("PUT");
+		config.addAllowedMethod("DELETE");
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/api/**", config);
+		return new CorsFilter(source);
+	}
 }

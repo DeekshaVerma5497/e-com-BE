@@ -17,106 +17,92 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CartService {
 
-    private final CartRepository     cartRepo;
-    private final CartItemRepository itemRepo;
-    private final ProductService     productService;
-    private final UserService        userService;
+	private final CartRepository cartRepo;
+	private final CartItemRepository itemRepo;
+	private final ProductService productService;
+	private final UserService userService;
 
-    /** <u>Strictly create</u>: error if already exists */
-    @Transactional
-    public Cart createCart(String userId) {
-        if (cartRepo.existsByUser_UserId(userId)) {
-            throw new IllegalStateException(
-                "Cart already exists for user " + userId
-            );
-        }
-        User user = userService.getByUserId(userId);
-        Cart c = Cart.builder().user(user).build();
-        return cartRepo.save(c);
-    }
+	/** <u>Strictly create</u>: error if already exists */
+	@Transactional
+	public Cart createCart(String userId) {
+		if (cartRepo.existsByUser_UserId(userId)) {
+			throw new IllegalStateException("Cart already exists for user " + userId);
+		}
+		User user = userService.getByUserId(userId);
+		Cart c = Cart.builder().user(user).build();
+		return cartRepo.save(c);
+	}
 
-    /** <u>Strictly fetch</u>: error if not found */
-    @Transactional(readOnly = true)
-    public Cart getCart(String userId) {
-        return cartRepo.findByUser_UserId(userId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Cart", "userId", userId)
-            );
-    }
-    
-    /**
-     * Adjusts a cart‐item’s quantity by delta (positive or negative).
-     * If the new quantity < 1, the item is removed entirely.
-     */
-    @Transactional
-    public Cart adjustItemQuantity(String userId, Long itemId, int delta) {
-        Cart cart = getCart(userId);
+	/** <u>Strictly fetch</u>: error if not found */
+	@Transactional(readOnly = true)
+	public Cart getCart(String userId) {
+		return cartRepo.findByUser_UserId(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", userId));
+	}
 
-        CartItem item = itemRepo.findById(itemId)
-            .filter(ci -> ci.getCart().equals(cart))
-            .orElseThrow(() ->
-                new ResourceNotFoundException("CartItem", "id", itemId.toString())
-            );
+	/**
+	 * Adjusts a cart‐item’s quantity by delta (positive or negative). If the new
+	 * quantity < 1, the item is removed entirely.
+	 */
+	@Transactional
+	public Cart adjustItemQuantity(String userId, Long itemId, int delta) {
+		Cart cart = getCart(userId);
 
-        int newQty = item.getQuantity() + delta;
-        if (newQty < 1) {
-            // remove the entry
-            cart.getItems().remove(item);
-            itemRepo.delete(item);
-        } else {
-            item.setQuantity(newQty);
-            itemRepo.save(item);
-        }
+		CartItem item = itemRepo.findById(itemId).filter(ci -> ci.getCart().equals(cart))
+				.orElseThrow(() -> new ResourceNotFoundException("CartItem", "id", itemId.toString()));
 
-        return cart;
-    }
+		int newQty = item.getQuantity() + delta;
+		if (newQty < 1) {
+			// remove the entry
+			cart.getItems().remove(item);
+			itemRepo.delete(item);
+		} else {
+			item.setQuantity(newQty);
+			itemRepo.save(item);
+		}
 
-    /** delete entire cart */
-    @Transactional
-    public void deleteCart(String userId) {
-        Cart c = getCart(userId);
-        cartRepo.delete(c);
-    }
+		return cart;
+	}
 
-    /** add or update quantity of a product */
-    @Transactional
-    public Cart addItem(String userId, String productCode, int qty) {
-        Cart cart = getCart(userId);
-        Product p = productService.getByCode(productCode);
+	/** delete entire cart */
+	@Transactional
+	public void deleteCart(String userId) {
+		Cart c = getCart(userId);
+		cartRepo.delete(c);
+	}
 
-        CartItem item = itemRepo.findByCartAndProduct(cart, p)
-            .orElseGet(() -> {
-                var ci = CartItem.builder()
-                    .cart(cart)
-                    .product(p)
-                    .build();
-                cart.getItems().add(ci);
-                return ci;
-            });
+	/** add or update quantity of a product */
+	@Transactional
+	public Cart addItem(String userId, String productCode, int qty) {
+		Cart cart = getCart(userId);
+		Product p = productService.getByCode(productCode);
 
-        item.setQuantity(qty);
-        item.setIsActive(true);
-        itemRepo.save(item);
-        return cart;
-    }
+		CartItem item = itemRepo.findByCartAndProduct(cart, p).orElseGet(() -> {
+			var ci = CartItem.builder().cart(cart).product(p).build();
+			cart.getItems().add(ci);
+			return ci;
+		});
 
-    /** list all items in the cart */
-    @Transactional(readOnly = true)
-    public List<CartItem> listItems(String userId) {
-        return getCart(userId).getItems();
-    }
+		item.setQuantity(qty);
+		item.setIsActive(true);
+		itemRepo.save(item);
+		return cart;
+	}
 
-    /** remove one item */
-    @Transactional
-    public Cart removeItem(String userId, Long itemId) {
-        Cart cart = getCart(userId);
-        CartItem item = itemRepo.findById(itemId)
-            .filter(ci -> ci.getCart().equals(cart))
-            .orElseThrow(() ->
-                new ResourceNotFoundException("CartItem", "id", itemId.toString())
-            );
-        cart.getItems().remove(item);
-        itemRepo.delete(item);
-        return cart;
-    }
+	/** list all items in the cart */
+	@Transactional(readOnly = true)
+	public List<CartItem> listItems(String userId) {
+		return getCart(userId).getItems();
+	}
+
+	/** remove one item */
+	@Transactional
+	public Cart removeItem(String userId, Long itemId) {
+		Cart cart = getCart(userId);
+		CartItem item = itemRepo.findById(itemId).filter(ci -> ci.getCart().equals(cart))
+				.orElseThrow(() -> new ResourceNotFoundException("CartItem", "id", itemId.toString()));
+		cart.getItems().remove(item);
+		itemRepo.delete(item);
+		return cart;
+	}
 }

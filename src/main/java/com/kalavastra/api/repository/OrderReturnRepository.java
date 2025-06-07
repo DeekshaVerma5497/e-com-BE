@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface OrderReturnRepository extends JpaRepository<OrderReturn, Long> {
-    List<OrderReturn> findByOrderItem_Order_User_UserId(String userId);
-    List<OrderReturn> findByOrderItem_Order_OrderId(Long orderId);
+	List<OrderReturn> findByOrderItem_Order_User_UserId(String userId);
+
+	List<OrderReturn> findByOrderItem_Order_OrderId(Long orderId);
 }

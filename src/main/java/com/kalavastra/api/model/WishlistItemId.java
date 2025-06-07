@@ -4,8 +4,11 @@ import lombok.*;
 
 import java.io.Serializable;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class WishlistItemId implements Serializable {
-    private Long wishlist;
-    private Long product;
+	private Long wishlist;
+	private Long product;
 }

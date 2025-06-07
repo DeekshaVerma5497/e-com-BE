@@ -12,47 +12,51 @@ import java.time.Instant;
 @Entity
 @Table(name = "order_returns")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class OrderReturn {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "return_id")
-    private Long returnId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "return_id")
+	private Long returnId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_item_id", nullable = false)
-    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-    private OrderItem orderItem;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "order_item_id", nullable = false)
+	@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+	private OrderItem orderItem;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String reason;
+	@Column(nullable = false, columnDefinition = "TEXT")
+	private String reason;
 
-    @Column(nullable = false, length = 50)
-    @Builder.Default
-    private String status = "Requested";
+	@Column(nullable = false, length = 50)
+	@Builder.Default
+	private String status = "Requested";
 
-    @Column(name = "refund_method", length = 50)
-    private String refundMethod;
+	@Column(name = "refund_method", length = 50)
+	private String refundMethod;
 
-    @Column(name = "refund_amount", precision = 10, scale = 2)
-    private BigDecimal refundAmount;
+	@Column(name = "refund_amount", precision = 10, scale = 2)
+	private BigDecimal refundAmount;
 
-    @Column(name = "date_requested", updatable = false)
-    private Instant dateRequested;
+	@Column(name = "date_requested", updatable = false)
+	private Instant dateRequested;
 
-    @Column(name = "date_updated")
-    private Instant dateUpdated;
+	@Column(name = "date_updated")
+	private Instant dateUpdated;
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        dateRequested = now;
-        dateUpdated = now;
-    }
+	@PrePersist
+	protected void onCreate() {
+		Instant now = Instant.now();
+		dateRequested = now;
+		dateUpdated = now;
+	}
 
-    @PreUpdate
-    protected void onUpdate() {
-        dateUpdated = Instant.now();
-    }
+	@PreUpdate
+	protected void onUpdate() {
+		dateUpdated = Instant.now();
+	}
 }
