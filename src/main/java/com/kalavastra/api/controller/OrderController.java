@@ -1,8 +1,9 @@
 package com.kalavastra.api.controller;
 
+import com.kalavastra.api.auth.AuthService;
 import com.kalavastra.api.model.Order;
-import com.kalavastra.api.model.OrderItem;
 import com.kalavastra.api.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,26 +14,35 @@ import java.util.List;
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
 public class OrderController {
-	private final OrderService svc;
 
-	@PostMapping("/{userId}")
-	public ResponseEntity<Order> place(@PathVariable String userId, @RequestBody List<OrderItem> items,
-			@RequestParam Long addressId) {
-		return ResponseEntity.ok(svc.place(userId, addressId, items));
+	private final OrderService orderService;
+	private final AuthService authService;
+
+	@Operation(summary = "List all orders for the current user")
+	@GetMapping
+	public ResponseEntity<List<Order>> listOrders() {
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(orderService.listOrders(uid));
 	}
 
+	@Operation(summary = "Get a single order by ID")
 	@GetMapping("/{orderId}")
-	public ResponseEntity<Order> get(@PathVariable Long orderId) {
-		return ResponseEntity.ok(svc.getById(orderId));
+	public ResponseEntity<Order> getOrder(@PathVariable Long orderId) {
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(orderService.getOrder(uid, orderId));
 	}
 
-	@GetMapping("/user/{userId}")
-	public ResponseEntity<List<Order>> listForUser(@PathVariable String userId) {
-		return ResponseEntity.ok(svc.listForUser(userId));
+	@Operation(summary = "Place a new order for the current user")
+	@PostMapping
+	public ResponseEntity<Order> placeOrder(@RequestBody Order order) {
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(orderService.placeOrder(uid, order));
 	}
 
-	@PutMapping("/{orderId}/cancel")
-	public ResponseEntity<Order> cancel(@PathVariable Long orderId) {
-		return ResponseEntity.ok(svc.cancel(orderId));
+	@Operation(summary = "Cancel an order for the current user")
+	@DeleteMapping("/{orderId}")
+	public ResponseEntity<Order> cancelOrder(@PathVariable Long orderId) {
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(orderService.cancelOrder(uid, orderId));
 	}
 }

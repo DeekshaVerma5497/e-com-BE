@@ -1,6 +1,8 @@
 package com.kalavastra.api.controller;
 
-import com.kalavastra.api.model.*;
+import com.kalavastra.api.auth.AuthService;
+import com.kalavastra.api.model.Wishlist;
+import com.kalavastra.api.model.WishlistItem;
 import com.kalavastra.api.service.WishlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -8,58 +10,41 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/wishlists")
+@RequestMapping("/api/v1/wishlist")
 @RequiredArgsConstructor
 public class WishlistController {
+	private final WishlistService wishlistService;
+	private final AuthService authService;
 
-	private final WishlistService svc;
-
-	@Operation(summary = "Create a new wishlist for a user")
-	@PostMapping
-	public ResponseEntity<Wishlist> create(@PathVariable String userId, @RequestParam String name) {
-		return ResponseEntity.ok(svc.createWishlist(userId, name));
+	@GetMapping("/items")
+	public ResponseEntity<List<WishlistItem>> listItems() {
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(wishlistService.listItems(uid));
 	}
 
-	@Operation(summary = "List all wishlists for a user")
-	@GetMapping
-	public ResponseEntity<List<Wishlist>> list(@PathVariable String userId) {
-		return ResponseEntity.ok(svc.listWishlists(userId));
+	/**
+	 * POST /items Toggle a product in the wishlist: - if not present or inactive →
+	 * add/activate - if active → deactivate
+	 */
+	@PostMapping("/items")
+	@Operation(summary = "Toggle a product in the wishlist")
+	public ResponseEntity<Wishlist> toggleItem(@RequestBody Map<String, Long> body) {
+		Long productId = Objects.requireNonNull(body.get("productId"), "productId is required");
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(wishlistService.toggleItem(uid, productId));
 	}
 
-	@Operation(summary = "Rename a wishlist")
-	@PutMapping("/{wishlistId}")
-	public ResponseEntity<Wishlist> rename(@PathVariable String userId, @PathVariable Long wishlistId,
-			@RequestParam String name) {
-		return ResponseEntity.ok(svc.renameWishlist(userId, wishlistId, name));
-	}
-
-	@Operation(summary = "Delete a wishlist")
-	@DeleteMapping("/{wishlistId}")
-	public ResponseEntity<Void> delete(@PathVariable String userId, @PathVariable Long wishlistId) {
-		svc.deleteWishlist(userId, wishlistId);
-		return ResponseEntity.noContent().build();
-	}
-
-	@Operation(summary = "List items in a wishlist")
-	@GetMapping("/{wishlistId}/items")
-	public ResponseEntity<List<WishlistItem>> listItems(@PathVariable String userId, @PathVariable Long wishlistId) {
-		return ResponseEntity.ok(svc.listItems(userId, wishlistId));
-	}
-
-	@Operation(summary = "Add a product to a wishlist")
-	@PostMapping("/{wishlistId}/items")
-	public ResponseEntity<Wishlist> addItem(@PathVariable String userId, @PathVariable Long wishlistId,
-			@RequestParam String productCode) {
-		return ResponseEntity.ok(svc.addItem(userId, wishlistId, productCode));
-	}
-
-	@Operation(summary = "Remove a product from a wishlist")
-	@DeleteMapping("/{wishlistId}/items")
-	public ResponseEntity<Void> removeItem(@PathVariable String userId, @PathVariable Long wishlistId,
-			@RequestParam String productCode) {
-		svc.removeItem(userId, wishlistId, productCode);
-		return ResponseEntity.noContent().build();
+	/**
+	 * DELETE /items Clear the entire wishlist
+	 */
+	@DeleteMapping("/items")
+	@Operation(summary = "Clear the wishlist")
+	public ResponseEntity<Wishlist> clear() {
+		String uid = authService.getCurrentUser().getUserId();
+		return ResponseEntity.ok(wishlistService.clearWishlist(uid));
 	}
 }

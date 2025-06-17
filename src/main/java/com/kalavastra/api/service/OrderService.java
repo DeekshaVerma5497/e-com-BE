@@ -1,58 +1,64 @@
 package com.kalavastra.api.service;
 
-import com.kalavastra.api.exception.ResourceNotFoundException;
-import com.kalavastra.api.model.*;
+import com.kalavastra.api.model.Order;
+import com.kalavastra.api.model.OrderItem;
+import com.kalavastra.api.repository.OrderItemRepository;
 import com.kalavastra.api.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class OrderService {
 	private final OrderRepository orderRepo;
-	private final UserService userService;
-	private final AddressService addressService;
-	private final ProductService productService;
+	private final OrderItemRepository itemRepo;
 
-	@Transactional
-	public Order place(String userId, Long addressId, List<OrderItem> items) {
-		var user = userService.getByUserId(userId);
-		var address = addressService.get(addressId);
-		Order order = Order.builder().user(user).address(address).status("PLACED").build();
+	@Transactional(readOnly = true)
+	public List<Order> listOrders(String userId) {
+		return orderRepo.findByUserId(userId);
+	}
 
-		BigDecimal total = BigDecimal.ZERO;
-		for (OrderItem oi : items) {
-			var p = productService.getByCode(oi.getProduct().getProductCode());
-			oi.setOrder(order);
-			oi.setProduct(p);
-			oi.setPrice(p.getPrice());
-			total = total.add(p.getPrice().multiply(BigDecimal.valueOf(oi.getQuantity())));
-			order.getItems().add(oi);
+	@Transactional(readOnly = true)
+	public Order getOrder(String userId, Long orderId) {
+		Order order = orderRepo.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+		if (!order.getUserId().equals(userId)) {
+			throw new SecurityException("Not authorized to view this order");
 		}
-		order.setTotalAmount(total);
-		return orderRepo.save(order);
-	}
-
-	@Transactional(readOnly = true)
-	public Order getById(Long id) {
-		return orderRepo.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", id.toString()));
-	}
-
-	@Transactional(readOnly = true)
-	public List<Order> listForUser(String userId) {
-		userService.getByUserId(userId);
-		return orderRepo.findByUser_UserId(userId);
+		return order;
 	}
 
 	@Transactional
-	public Order cancel(Long orderId) {
-		Order o = getById(orderId);
-		o.setStatus("CANCELLED");
-		return orderRepo.save(o);
+	public Order placeOrder(String userId, Order incoming) {
+		// assign the logged-in user
+		incoming.setUserId(userId);
+		// you can tweak status logic if needed
+		incoming.setStatus("PLACED");
+		// generate a unique code if none provided
+		if (incoming.getOrderCode() == null) {
+			incoming.setOrderCode("ORD-" + UUID.randomUUID().toString().substring(0, 8));
+		}
+		// persist order
+		Order saved = orderRepo.save(incoming);
+
+		// link & save items
+		for (OrderItem it : incoming.getItems()) {
+			it.setOrder(saved);
+			itemRepo.save(it);
+		}
+
+		saved.setItems(itemRepo.findByOrder(saved));
+		return saved;
+	}
+
+	@Transactional
+	public Order cancelOrder(String userId, Long orderId) {
+		Order order = getOrder(userId, orderId);
+		order.setStatus("CANCELLED");
+		return orderRepo.save(order);
 	}
 }

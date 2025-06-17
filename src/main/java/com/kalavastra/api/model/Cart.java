@@ -1,11 +1,19 @@
 package com.kalavastra.api.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.Instant;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,36 +25,23 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Cart {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "cart_id")
 	private Long cartId;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
-	@JsonIgnore
-	private User user;
+	@Column(name = "user_id", nullable = false, length = 50)
+	private String userId;
+
+	@CreationTimestamp
+	@Column(name = "date_created", updatable = false)
+	private OffsetDateTime dateCreated;
+
+	@UpdateTimestamp
+	@Column(name = "date_updated")
+	private OffsetDateTime dateUpdated;
 
 	@OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-	@Builder.Default
-	@JsonManagedReference
 	private List<CartItem> items = new ArrayList<>();
-
-	@Column(name = "date_created", updatable = false)
-	private Instant dateCreated;
-
-	@Column(name = "date_updated")
-	private Instant dateUpdated;
-
-	@PrePersist
-	protected void onCreate() {
-		Instant now = Instant.now();
-		dateCreated = now;
-		dateUpdated = now;
-	}
-
-	@PreUpdate
-	protected void onUpdate() {
-		dateUpdated = Instant.now();
-	}
 }

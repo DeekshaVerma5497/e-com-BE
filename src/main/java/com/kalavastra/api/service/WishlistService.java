@@ -1,6 +1,5 @@
 package com.kalavastra.api.service;
 
-import com.kalavastra.api.exception.ResourceNotFoundException;
 import com.kalavastra.api.model.*;
 import com.kalavastra.api.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -12,74 +11,79 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class WishlistService {
-
 	private final WishlistRepository wishlistRepo;
 	private final WishlistItemRepository itemRepo;
-	private final UserService userService;
 	private final ProductService productService;
 
-	@Transactional
-	public Wishlist createWishlist(String userId, String name) {
-		var user = userService.getByUserId(userId);
-		Wishlist w = Wishlist.builder().user(user).name(name).build();
-		return wishlistRepo.save(w);
-	}
-
+	/**
+	 * Fetch all wishlist items for this user and fully hydrate each product (with
+	 * images, imageUrl, etc).
+	 */
 	@Transactional(readOnly = true)
-	public List<Wishlist> listWishlists(String userId) {
-		userService.getByUserId(userId);
-		return wishlistRepo.findByUser_UserId(userId);
+	public List<WishlistItem> listItems(String userId) {
+		return wishlistRepo.findByUserId(userId).map(wl -> {
+			List<WishlistItem> items = itemRepo.findByWishlist(wl);
+			// hydrate each product
+			items.forEach(wi -> {
+				var full = productService.getById(wi.getProduct().getId());
+				wi.setProduct(full);
+			});
+			return items;
+		}).orElse(List.of());
 	}
 
+	/**
+	 * Toggle the wishlist state for this product: - If no row exists, INSERT
+	 * is_active=true - If exists, flip isActive and save()
+	 */
 	@Transactional
-	public Wishlist renameWishlist(String userId, Long wishlistId, String newName) {
-		Wishlist w = wishlistRepo.findById(wishlistId).filter(ws -> ws.getUser().getUserId().equals(userId))
-				.orElseThrow(() -> new ResourceNotFoundException("Wishlist", "id", wishlistId.toString()));
-		w.setName(newName);
-		return wishlistRepo.save(w);
+	public Wishlist toggleItem(String userId, Long productId) {
+		Wishlist wl = wishlistRepo.findByUserId(userId)
+				.orElseGet(() -> wishlistRepo.save(Wishlist.builder().userId(userId).name("My Favourites") // default
+																											// name
+						.build()));
+
+		// lookup existing row
+		itemRepo.findByWishlistAndProduct_Id(wl, productId).ifPresentOrElse(wi -> {
+			// flip active
+			wi.setIsActive(!Boolean.TRUE.equals(wi.getIsActive()));
+			itemRepo.save(wi);
+		}, () -> {
+			// create new
+			WishlistItem newItem = WishlistItem.builder().id(new WishlistItemId(productId, wl.getWishlistId()))
+					.wishlist(wl).product(new Product(productId)) // only sets id
+					.isActive(true).build();
+			itemRepo.save(newItem);
+		});
+
+		// now safely refresh the *contents* of the persistent collection:
+		List<WishlistItem> all = itemRepo.findByWishlist(wl);
+		// clear-but-not-replace:
+		wl.getItems().clear();
+		wl.getItems().addAll(all);
+		return wl;
 	}
 
+	/**
+	 * Now clears *all* items with one SQL UPDATE.
+	 */
 	@Transactional
-	public void deleteWishlist(String userId, Long wishlistId) {
-		Wishlist w = wishlistRepo.findById(wishlistId).filter(ws -> ws.getUser().getUserId().equals(userId))
-				.orElseThrow(() -> new ResourceNotFoundException("Wishlist", "id", wishlistId.toString()));
-		wishlistRepo.delete(w);
+	public Wishlist clearWishlist(String userId) {
+		Wishlist wl = wishlistRepo.findByUserId(userId)
+				.orElseThrow(() -> new IllegalArgumentException("Wishlist not found for user: " + userId));
+
+		// bulk‐deactivate in one go
+		itemRepo.deactivateAllByWishlist(wl);
+
+		// clear the in‐memory list so Hibernate doesn’t orphan‐delete
+		wl.getItems().clear();
+		return wl;
 	}
 
+	/** returns true if there is an active wishlist_item for this user + product */
 	@Transactional(readOnly = true)
-	public List<WishlistItem> listItems(String userId, Long wishlistId) {
-		// ensures wishlist belongs to user
-		wishlistRepo.findById(wishlistId).filter(w -> w.getUser().getUserId().equals(userId))
-				.orElseThrow(() -> new ResourceNotFoundException("Wishlist", "id", wishlistId.toString()));
-		return itemRepo.findAllByWishlist_WishlistIdAndIsActiveTrue(wishlistId);
-	}
-
-	@Transactional
-	public Wishlist addItem(String userId, Long wishlistId, String productCode) {
-		Wishlist w = wishlistRepo.findById(wishlistId).filter(ws -> ws.getUser().getUserId().equals(userId))
-				.orElseThrow(() -> new ResourceNotFoundException("Wishlist", "id", wishlistId.toString()));
-
-		var product = productService.getByCode(productCode);
-		var existing = itemRepo.findByWishlist_WishlistIdAndProduct_ProductCode(wishlistId, productCode).orElse(null);
-
-		if (existing != null) {
-			existing.setIsActive(true);
-			itemRepo.save(existing);
-		} else {
-			WishlistItem item = WishlistItem.builder().wishlist(w).product(product).build();
-			w.getItems().add(item);
-		}
-		return wishlistRepo.save(w);
-	}
-
-	@Transactional
-	public Wishlist removeItem(String userId, Long wishlistId, String productCode) {
-		WishlistItem item = itemRepo.findByWishlist_WishlistIdAndProduct_ProductCode(wishlistId, productCode)
-				.filter(i -> i.getWishlist().getUser().getUserId().equals(userId))
-				.orElseThrow(() -> new ResourceNotFoundException("WishlistItem", "productCode", productCode));
-
-		item.setIsActive(false);
-		itemRepo.save(item);
-		return item.getWishlist();
+	public boolean isWishlisted(String userId, Long productId) {
+		return wishlistRepo.findByUserId(userId)
+				.flatMap(wl -> itemRepo.findByWishlistAndProduct_IdAndIsActive(wl, productId, true)).isPresent();
 	}
 }

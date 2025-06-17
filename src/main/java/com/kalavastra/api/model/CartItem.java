@@ -1,58 +1,64 @@
 package com.kalavastra.api.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+import com.fasterxml.jackson.annotation.*;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.Instant;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "cart_items")
+@Table(name = "cart_items", schema = "kalavastra")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class CartItem {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "cart_item_id")
 	private Long cartItemId;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@CreationTimestamp
+	@Column(name = "date_created", updatable = false)
+	private OffsetDateTime dateCreated;
+
+	@UpdateTimestamp
+	@Column(name = "date_updated")
+	private OffsetDateTime dateUpdated;
+
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive;
+
+	@Column(name = "quantity", nullable = false)
+	private Integer quantity;
+
+	// --- ignore back-pointer to Cart to avoid infinite recursion ---
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "cart_id", nullable = false)
-	@JsonBackReference
+	@JsonIgnore
 	private Cart cart;
 
-	@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-	@ManyToOne(fetch = FetchType.LAZY)
+	// --- FULL product details now included in JSON ---
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "product_id", nullable = false)
 	private Product product;
 
-	@Column(nullable = false)
-	private Integer quantity;
+	// expose productId as top-level field
+	@Transient
+	@JsonProperty("productId")
+	private Long productId;
 
-	@Builder.Default
-	@Column(nullable = false)
-	private Boolean isActive = true;
-
-	@Column(name = "date_created", updatable = false)
-	private Instant dateCreated;
-
-	@Column(name = "date_updated")
-	private Instant dateUpdated;
-
-	@PrePersist
-	protected void onCreate() {
-		Instant now = Instant.now();
-		dateCreated = now;
-		dateUpdated = now;
+	@JsonSetter("productId")
+	public void setProductId(Long productId) {
+		this.productId = productId;
+		this.product = new Product(productId);
 	}
 
-	@PreUpdate
-	protected void onUpdate() {
-		dateUpdated = Instant.now();
+	@JsonGetter("productId")
+	public Long getProductId() {
+		return (product != null ? product.getId() : productId);
 	}
 }

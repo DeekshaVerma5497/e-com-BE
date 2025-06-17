@@ -1,17 +1,15 @@
 package com.kalavastra.api.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
-import java.time.Instant;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-/**
- * Tracks a customer’s return request for a specific order item.
- */
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
 @Entity
 @Table(name = "order_returns")
-@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,39 +22,27 @@ public class OrderReturn {
 	@Column(name = "return_id")
 	private Long returnId;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "order_item_id", nullable = false)
-	@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-	private OrderItem orderItem;
+	@CreationTimestamp
+	@Column(name = "date_requested", updatable = false)
+	private OffsetDateTime dateRequested;
 
-	@Column(nullable = false, columnDefinition = "TEXT")
+	@UpdateTimestamp
+	@Column(name = "date_updated")
+	private OffsetDateTime dateUpdated;
+
+	@Column(name = "reason", columnDefinition = "text")
 	private String reason;
-
-	@Column(nullable = false, length = 50)
-	@Builder.Default
-	private String status = "Requested";
-
-	@Column(name = "refund_method", length = 50)
-	private String refundMethod;
 
 	@Column(name = "refund_amount", precision = 10, scale = 2)
 	private BigDecimal refundAmount;
 
-	@Column(name = "date_requested", updatable = false)
-	private Instant dateRequested;
+	@Column(name = "refund_method", length = 50)
+	private String refundMethod;
 
-	@Column(name = "date_updated")
-	private Instant dateUpdated;
+	@Column(name = "status", length = 50)
+	private String status;
 
-	@PrePersist
-	protected void onCreate() {
-		Instant now = Instant.now();
-		dateRequested = now;
-		dateUpdated = now;
-	}
-
-	@PreUpdate
-	protected void onUpdate() {
-		dateUpdated = Instant.now();
-	}
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "order_item_id", nullable = false)
+	private OrderItem orderItem;
 }

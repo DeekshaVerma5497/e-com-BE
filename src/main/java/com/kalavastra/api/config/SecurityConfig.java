@@ -4,6 +4,7 @@ import com.kalavastra.api.security.CustomUserDetailsService;
 import com.kalavastra.api.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.*;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -14,11 +15,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.cors.*;
+
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -30,32 +29,36 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
-				// 1) no CSRF (we’re stateless)
+				// CORS
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+				// no CSRF
 				.csrf(AbstractHttpConfigurer::disable)
 
-				// 2) register CORS filter FIRST, so that preflight (OPTIONS) requests get the
-				// right headers
-				.addFilterBefore(corsFilter(), UsernamePasswordAuthenticationFilter.class)
-
-				// 3) public endpoints
+				// public endpoints + preflight
 				.authorizeHttpRequests(auth -> auth
+						// 1) allow all OPTIONS requests (CORS preflight)
+						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+//                .requestMatchers("/api/v1/cart/items").permitAll()
+						// 2) your existing public endpoints
 						.requestMatchers("/api/v1/auth/**", "/api/v1/products/**", "/api/v1/categories/**",
 								"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
-						.permitAll().anyRequest().authenticated())
+						.permitAll()
+						// 3) everything else (including /api/v1/cart/**) must be authenticated
+						.anyRequest().authenticated())
 
-				// 4) stateless session
+				// stateless session
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-				// 5) inject our DaoAuthProvider
+				// DAO auth provider
 				.authenticationProvider(daoAuthenticationProvider())
 
-				// 6) plug in the JWT filter
+				// JWT filter
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}
 
-	/** so that Spring Security knows how to load users + check passwords */
 	@Bean
 	public AuthenticationProvider daoAuthenticationProvider() {
 		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -64,10 +67,6 @@ public class SecurityConfig {
 		return provider;
 	}
 
-	/**
-	 * exposed so your AuthController (or service) can perform the actual
-	 * `authenticate(...)` call
-	 */
 	@Bean
 	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
 		AuthenticationManagerBuilder auth = http.getSharedObject(AuthenticationManagerBuilder.class);
@@ -80,19 +79,21 @@ public class SecurityConfig {
 		return new BCryptPasswordEncoder();
 	}
 
+	/**
+	 * Defines CORS policy and registers it for all paths. This runs before Spring
+	 * Security filters and preserves the Authorization header for your JWT filter.
+	 */
 	@Bean
-	public CorsFilter corsFilter() {
+	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowedOrigins(List.of("http://localhost:4200"));
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("*"));
 		config.setAllowCredentials(true);
-		config.addAllowedOrigin("http://localhost:4200");
-		config.addAllowedHeader("*");
-		config.addAllowedMethod("OPTIONS");
-		config.addAllowedMethod("GET");
-		config.addAllowedMethod("POST");
-		config.addAllowedMethod("PUT");
-		config.addAllowedMethod("DELETE");
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/api/**", config);
-		return new CorsFilter(source);
+
+		UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+		src.registerCorsConfiguration("/**", config);
+		return src;
 	}
+
 }

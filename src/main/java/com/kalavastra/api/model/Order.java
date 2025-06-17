@@ -1,15 +1,14 @@
 package com.kalavastra.api.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
@@ -19,52 +18,35 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Order {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "order_id")
 	private Long orderId;
 
-	@Column(name = "order_code", unique = true, nullable = false, length = 50)
-	private String orderCode;
+	@CreationTimestamp
+	@Column(name = "date_created", updatable = false)
+	private OffsetDateTime dateCreated;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
-	private User user;
+	@UpdateTimestamp
+	@Column(name = "date_updated")
+	private OffsetDateTime dateUpdated;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "address_id", nullable = false)
-	@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-	private Address address;
+	@Column(name = "status", length = 20, nullable = false)
+	private String status;
 
-	@Column(name = "status", nullable = false, length = 20)
-	private String status; // e.g. "Placed", "Cancelled"
-
-	@Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+	@Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
 	private BigDecimal totalAmount;
 
+	@Column(name = "address_id", nullable = false)
+	private Long addressId;
+
+	@Column(name = "user_id", nullable = false, length = 50)
+	private String userId;
+
+	@Column(name = "order_code", length = 50, nullable = false, unique = true)
+	private String orderCode;
+
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-	@Builder.Default
-	@JsonManagedReference
 	private List<OrderItem> items = new ArrayList<>();
-
-	@Column(name = "date_created", updatable = false)
-	private Instant dateCreated;
-
-	@Column(name = "date_updated")
-	private Instant dateUpdated;
-
-	@PrePersist
-	protected void onCreate() {
-		Instant now = Instant.now();
-		dateCreated = now;
-		dateUpdated = now;
-		if (orderCode == null || orderCode.isBlank()) {
-			orderCode = "ORD-" + UUID.randomUUID().toString().substring(0, 8);
-		}
-	}
-
-	@PreUpdate
-	protected void onUpdate() {
-		dateUpdated = Instant.now();
-	}
 }
