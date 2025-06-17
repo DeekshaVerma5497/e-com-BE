@@ -89,6 +89,7 @@ public class SecurityConfig {
 		config.setAllowedOrigins(List.of("http://localhost:4200"));
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(List.of("*"));
+		config.setExposedHeaders(List.of("X-Require-Logout"));
 		config.setAllowCredentials(true);
 
 		UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();

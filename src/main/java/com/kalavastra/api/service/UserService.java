@@ -28,7 +28,8 @@ public class UserService {
 		User u = getByUserId(userId);
 		u.setName(req.getName());
 		u.setPhoneNumber(req.getPhoneNumber());
-		// etc...
+		u.setDateOfBirth(req.getDateOfBirth());
+		u.setEmail(req.getEmail());
 		return repo.save(u);
 	}
 }
