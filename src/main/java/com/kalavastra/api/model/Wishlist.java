@@ -39,5 +39,6 @@ public class Wishlist {
 	private OffsetDateTime dateUpdated;
 
 	@OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
 	private List<WishlistItem> items = new ArrayList<>();
 }

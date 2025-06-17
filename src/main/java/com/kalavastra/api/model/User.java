@@ -1,5 +1,6 @@
 package com.kalavastra.api.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -8,6 +9,7 @@ import lombok.*;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -34,6 +36,10 @@ public class User {
 	@NotBlank(message = "Password is required") // never serialize the hash out
 	@Column(name = "password_hash", nullable = false)
 	private String passwordHash;
+
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+	@Column(name = "date_of_birth")
+	private LocalDate dateOfBirth;
 
 	@Transient
 	@JsonProperty(value = "password", access = JsonProperty.Access.WRITE_ONLY)

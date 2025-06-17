@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.*;
 import org.springframework.http.*;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -33,18 +36,23 @@ public class ProductController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
-	@Operation(summary = "Get product by ID (with wishlisted flag)")
-	@GetMapping("/{id}")
-	public ResponseEntity<Product> getById(@PathVariable("id") Long id) {
-		Product p = svc.getById(id);
+	@Operation(summary = "Get product by ID (with optional wishlisted flag)")
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getById(@PathVariable("id") Long id) {
+        Product p = svc.getById(id);
 
-		// safely fetch current user (will 401 if not authenticated)
-		String uid = authService.getCurrentUser().getUserId();
-		boolean wished = wishlistService.isWishlisted(uid, id);
-		p.setWishlisted(wished);
+        // only try to fetch wishlisted if the user is authenticated
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null
+            && auth.isAuthenticated()
+            && !(auth instanceof AnonymousAuthenticationToken)) {
+            String uid = authService.getCurrentUser().getUserId();
+            boolean wished = wishlistService.isWishlisted(uid, id);
+            p.setWishlisted(wished);
+        }
 
-		return ResponseEntity.ok(p);
-	}
+        return ResponseEntity.ok(p);
+    }
 
 	@Operation(summary = "Get product by code")
 	@GetMapping("/code/{code}")
@@ -66,22 +74,33 @@ public class ProductController {
 		return ResponseEntity.noContent().build();
 	}
 
-	@Operation(summary = "List products (with wishlisted flags)")
-	@GetMapping
-	public ResponseEntity<Page<Product>> list(@RequestParam Map<String, String> allParams, Pageable pageable) {
-		var filters = new HashMap<>(allParams);
-		filters.remove("page");
-		filters.remove("size");
-		filters.remove("sort");
-		Page<Product> page = svc.list(filters, pageable);
+	@Operation(summary = "List products (with optional wishlisted flags)")
+    @GetMapping
+    public ResponseEntity<Page<Product>> list(
+            @RequestParam Map<String, String> allParams,
+            Pageable pageable) {
 
-		// if user not logged in, you could skip enrichment or default to false
-		String uid = authService.getCurrentUser().getUserId();
-		var items = wishlistService.listItems(uid);
-		Set<Long> wishedIds = items.stream().filter(WishlistItem::getIsActive).map(wi -> wi.getProduct().getId())
-				.collect(Collectors.toSet());
+        // strip paging/sort params
+        Map<String,String> filters = new HashMap<>(allParams);
+        filters.keySet().removeAll(Arrays.asList("page", "size", "sort"));
 
-		page.getContent().forEach(p -> p.setWishlisted(wishedIds.contains(p.getId())));
-		return ResponseEntity.ok(page);
-	}
+        Page<Product> page = svc.list(filters, pageable);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null
+            && auth.isAuthenticated()
+            && !(auth instanceof AnonymousAuthenticationToken)) {
+
+            String uid = authService.getCurrentUser().getUserId();
+            List<WishlistItem> items = wishlistService.listItems(uid);
+            Set<Long> wishedIds = items.stream()
+                                       .filter(WishlistItem::getIsActive)
+                                       .map(wi -> wi.getProduct().getId())
+                                       .collect(Collectors.toSet());
+
+            page.getContent().forEach(p -> p.setWishlisted(wishedIds.contains(p.getId())));
+        }
+
+        return ResponseEntity.ok(page);
+    }
 }
