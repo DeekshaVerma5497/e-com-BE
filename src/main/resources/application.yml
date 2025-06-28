@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/kalavastra_db?currentSchema=kalavastra
-    username: postgres
-    password: root
+    url: "jdbc:postgresql://localhost:5432/kalavastra_db?currentSchema=kalavastra"
+    username: "postgres"
+    password: "root"
   jpa:
     hibernate:
       ddl-auto: update
@@ -11,14 +11,20 @@ spring:
       hibernate:
         format_sql: true
 
-app:
-  jwt:
-    secret: MyVerySecureJwtSecretKeyThatIsAtLeast32BytesLong!
-    expirationMs: 3600000
-
 server:
   port: 8081
 
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+app:
+  jwt:
+    secret: "MyVerySecureJwtSecretKeyThatIsAtLeast32BytesLong!"
+    expirationMs: 3600000
+
+  fe:
+    # from the backend folder, go up one (..) into your FE project folder
+    images-path: "C:/Users/deeks/Documents/Project/saree-ecommerce/src/assets/images/products"
+    # how the Angular dev-server will serve those files
+    images-url: "http://localhost:4200/assets/images/products"

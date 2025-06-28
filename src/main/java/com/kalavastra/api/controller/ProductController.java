@@ -37,22 +37,20 @@ public class ProductController {
 	}
 
 	@Operation(summary = "Get product by ID (with optional wishlisted flag)")
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getById(@PathVariable("id") Long id) {
-        Product p = svc.getById(id);
+	@GetMapping("/{id}")
+	public ResponseEntity<Product> getById(@PathVariable("id") Long id) {
+		Product p = svc.getById(id);
 
-        // only try to fetch wishlisted if the user is authenticated
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null
-            && auth.isAuthenticated()
-            && !(auth instanceof AnonymousAuthenticationToken)) {
-            String uid = authService.getCurrentUser().getUserId();
-            boolean wished = wishlistService.isWishlisted(uid, id);
-            p.setWishlisted(wished);
-        }
+		// only try to fetch wishlisted if the user is authenticated
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+			String uid = authService.getCurrentUser().getUserId();
+			boolean wished = wishlistService.isWishlisted(uid, id);
+			p.setWishlisted(wished);
+		}
 
-        return ResponseEntity.ok(p);
-    }
+		return ResponseEntity.ok(p);
+	}
 
 	@Operation(summary = "Get product by code")
 	@GetMapping("/code/{code}")
@@ -75,32 +73,26 @@ public class ProductController {
 	}
 
 	@Operation(summary = "List products (with optional wishlisted flags)")
-    @GetMapping
-    public ResponseEntity<Page<Product>> list(
-            @RequestParam Map<String, String> allParams,
-            Pageable pageable) {
+	@GetMapping
+	public ResponseEntity<Page<Product>> list(@RequestParam Map<String, String> allParams, Pageable pageable) {
 
-        // strip paging/sort params
-        Map<String,String> filters = new HashMap<>(allParams);
-        filters.keySet().removeAll(Arrays.asList("page", "size", "sort"));
+		// strip paging/sort params
+		Map<String, String> filters = new HashMap<>(allParams);
+		filters.keySet().removeAll(Arrays.asList("page", "size", "sort"));
 
-        Page<Product> page = svc.list(filters, pageable);
+		Page<Product> page = svc.list(filters, pageable);
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null
-            && auth.isAuthenticated()
-            && !(auth instanceof AnonymousAuthenticationToken)) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
 
-            String uid = authService.getCurrentUser().getUserId();
-            List<WishlistItem> items = wishlistService.listItems(uid);
-            Set<Long> wishedIds = items.stream()
-                                       .filter(WishlistItem::getIsActive)
-                                       .map(wi -> wi.getProduct().getId())
-                                       .collect(Collectors.toSet());
+			String uid = authService.getCurrentUser().getUserId();
+			List<WishlistItem> items = wishlistService.listItems(uid);
+			Set<Long> wishedIds = items.stream().filter(WishlistItem::getIsActive).map(wi -> wi.getProduct().getId())
+					.collect(Collectors.toSet());
 
-            page.getContent().forEach(p -> p.setWishlisted(wishedIds.contains(p.getId())));
-        }
+			page.getContent().forEach(p -> p.setWishlisted(wishedIds.contains(p.getId())));
+		}
 
-        return ResponseEntity.ok(page);
-    }
+		return ResponseEntity.ok(page);
+	}
 }
