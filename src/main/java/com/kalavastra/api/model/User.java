@@ -49,6 +49,10 @@ public class User {
 	private String phoneNumber;
 
 	@Builder.Default
+	@Column(name = "type", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'customer'")
+	private String type = "customer";
+
+	@Builder.Default
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
 

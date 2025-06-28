@@ -32,6 +32,10 @@ public class ProductController {
 	@Operation(summary = "Create new product")
 	@PostMapping
 	public ResponseEntity<Product> create(@Valid @RequestBody Product product) {
+		var current = authService.getCurrentUser();
+		if (!"admin".equalsIgnoreCase(current.getType())) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+		}
 		Product created = svc.create(product);
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
@@ -62,6 +66,10 @@ public class ProductController {
 	@PutMapping("/code/{code}")
 	public ResponseEntity<Product> updateByCode(@PathVariable("code") String code,
 			@Valid @RequestBody Product product) {
+		var current = authService.getCurrentUser();
+		if (!"admin".equalsIgnoreCase(current.getType())) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+		}
 		return ResponseEntity.ok(svc.updateByCode(code, product));
 	}
 

@@ -3,7 +3,6 @@ package com.kalavastra.api.auth;
 import com.kalavastra.api.exception.ResourceNotFoundException;
 import com.kalavastra.api.model.User;
 import com.kalavastra.api.repository.UserRepository;
-import com.kalavastra.api.service.UserService;
 import com.kalavastra.api.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 
@@ -11,7 +10,6 @@ import java.security.SecureRandom;
 import java.util.Optional;
 
 import org.springframework.security.authentication.*;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,7 +40,7 @@ public class AuthService {
 		// generate a userId, set defaults, etc.
 		userRepo.save(user);
 
-		String token = jwtUtil.generateToken(user.getEmail());
+		String token = jwtUtil.generateToken(user);
 		return new AuthResponse(token);
 	}
 
@@ -61,10 +59,11 @@ public class AuthService {
 	}
 
 	public AuthResponse login(AuthRequest req) {
-		Authentication auth = authManager
-				.authenticate(new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
-		var ud = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
-		String token = jwtUtil.generateToken(ud.getUsername());
+		authManager.authenticate(new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
+		// load full user so we know their type
+		User user = userRepo.findByEmail(req.getEmail())
+				.orElseThrow(() -> new ResourceNotFoundException("User", "email", req.getEmail()));
+		String token = jwtUtil.generateToken(user);
 		return AuthResponse.builder().token(token).build();
 	}
 

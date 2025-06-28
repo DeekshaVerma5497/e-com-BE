@@ -6,6 +6,8 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.kalavastra.api.model.User;
+
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
@@ -31,6 +33,18 @@ public class JwtUtil {
 		// If you actually store it base64‑encoded, you can decode first:
 		// byte[] decoded = Decoders.BASE64.decode(jwtSecretString);
 		// jwtSecretKey = Keys.hmacShaKeyFor(decoded);
+	}
+
+	/**
+	 * Generates a token that includes the user's email as subject, plus a "type"
+	 * claim so the client can see admin vs customer.
+	 */
+	public String generateToken(User user) {
+		Date now = new Date();
+		Date expires = new Date(now.getTime() + jwtExpirationMs);
+
+		return Jwts.builder().setSubject(user.getEmail()).claim("type", user.getType()) // ← new claim
+				.setIssuedAt(now).setExpiration(expires).signWith(jwtSecretKey, SignatureAlgorithm.HS256).compact();
 	}
 
 	public String generateToken(String username) {
