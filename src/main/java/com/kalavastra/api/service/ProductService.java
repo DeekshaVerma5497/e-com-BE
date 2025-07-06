@@ -107,11 +107,19 @@ public class ProductService {
 	}
 
 	@Transactional(readOnly = true)
-	public Page<Product> list(Map<String, String> filters, Pageable pg) {
-		Specification<Product> spec = Specification.where(null);
+	public Page<Product> list(Map<String, List<String>> filters, Pageable pg) {
+		Specification<Product> spec = Specification.where(isActiveTrue());
 
-		for (var e : filters.entrySet()) {
-			spec = spec.and(dynamicFilter(e.getKey(), e.getValue()));
+		for (Map.Entry<String, List<String>> entry : filters.entrySet()) {
+			String key = entry.getKey();
+
+			// Handle comma-separated values as well as multiple same keys
+			List<String> values = entry.getValue().stream().flatMap(v -> Arrays.stream(v.split(","))).map(String::trim)
+					.filter(s -> !s.isEmpty()).toList();
+
+			if (!values.isEmpty()) {
+				spec = spec.and(dynamicMultiValueFilter(key, values));
+			}
 		}
 
 		Page<Product> page = repo.findAll(spec, pg);
@@ -121,6 +129,44 @@ public class ProductService {
 			p.setImages(urls);
 		});
 		return page;
+	}
+
+	private Specification<Product> dynamicMultiValueFilter(String key, List<String> values) {
+		return (root, query, cb) -> {
+			List<Predicate> predicates = new ArrayList<>();
+
+			for (String val : values) {
+				try {
+					if ("categoryCode".equalsIgnoreCase(key)) {
+						Join<Product, Category> cat = root.join("category");
+						predicates.add(cb.equal(cat.get("categoryCode"), val));
+						continue;
+					}
+
+					Path<?> path = root.get(key);
+					Class<?> type = path.getJavaType();
+					Object castedValue = switch (type.getSimpleName()) {
+					case "Integer" -> Integer.valueOf(val);
+					case "Long" -> Long.valueOf(val);
+					case "BigDecimal" -> new BigDecimal(val);
+					case "Boolean" -> Boolean.valueOf(val);
+					default -> val;
+					};
+					predicates.add(cb.equal(path, castedValue));
+				} catch (IllegalArgumentException ex) {
+					// fallback to extension field
+					Expression<String> jsonVal = cb.function("jsonb_extract_path_text", String.class,
+							root.get("extension"), cb.literal(key));
+					predicates.add(cb.equal(jsonVal, val));
+				}
+			}
+
+			return cb.or(predicates.toArray(new Predicate[0]));
+		};
+	}
+
+	private Specification<Product> isActiveTrue() {
+		return (root, query, cb) -> cb.isTrue(root.get("isActive"));
 	}
 
 	private Specification<Product> dynamicFilter(String key, String val) {

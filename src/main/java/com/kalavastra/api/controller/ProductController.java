@@ -15,6 +15,7 @@ import org.springframework.http.*;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -82,11 +83,18 @@ public class ProductController {
 
 	@Operation(summary = "List products (with optional wishlisted flags)")
 	@GetMapping
-	public ResponseEntity<Page<Product>> list(@RequestParam Map<String, String> allParams, Pageable pageable) {
+	public ResponseEntity<Page<Product>> list(@RequestParam MultiValueMap<String, String> allParams,
+			Pageable pageable) {
 
-		// strip paging/sort params
-		Map<String, String> filters = new HashMap<>(allParams);
-		filters.keySet().removeAll(Arrays.asList("page", "size", "sort"));
+		List<String> ignoreKeys = List.of("page", "size", "sort");
+		Map<String, List<String>> filters = new HashMap<>();
+
+		for (Map.Entry<String, List<String>> entry : allParams.entrySet()) {
+			String key = entry.getKey();
+			if (!List.of("page", "size", "sort").contains(key)) {
+				filters.put(key, entry.getValue());
+			}
+		}
 
 		Page<Product> page = svc.list(filters, pageable);
 
